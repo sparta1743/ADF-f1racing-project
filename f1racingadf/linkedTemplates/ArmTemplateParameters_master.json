@@ -1,0 +1,54 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "f1racingadf"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"value": ""
+		},
+		"linkedService1_connectionString": {
+			"value": ""
+		},
+		"ls_formula_final_accountKey": {
+			"value": ""
+		},
+		"ls_postgre_f1racing_connectionString": {
+			"value": ""
+		},
+		"ls_test_accountKey": {
+			"value": ""
+		},
+		"ls_wafa_stored_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_adls2_sink_seasons_properties_typeProperties_url": {
+			"value": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_databricks_f1racing_properties_typeProperties_existingClusterId": {
+			"value": "0330-112130-ag2n9amz"
+		},
+		"ls_formula_final_properties_typeProperties_url": {
+			"value": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_restapi_properties_typeProperties_url": {
+			"value": "http://ergast.com/api/f1/"
+		},
+		"ls_test_properties_typeProperties_url": {
+			"value": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"kshitij_properties_pipeline_parameters_p_file_trigger": {
+			"value": "@trigger().outputs.windowEndTime"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

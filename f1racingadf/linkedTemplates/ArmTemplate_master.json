@@ -1,0 +1,153 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "f1racingadf"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+		},
+		"linkedService1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'linkedService1'"
+		},
+		"ls_formula_final_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_formula_final'"
+		},
+		"ls_postgre_f1racing_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_postgre_f1racing'"
+		},
+		"ls_test_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_test'"
+		},
+		"ls_wafa_stored_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_wafa_stored'"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_adls2_sink_seasons_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_databricks_f1racing_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0330-112130-ag2n9amz"
+		},
+		"ls_formula_final_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"ls_restapi_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "http://ergast.com/api/f1/"
+		},
+		"ls_test_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://f1racingdatalake.dfs.core.windows.net/"
+		},
+		"kshitij_properties_pipeline_parameters_p_file_trigger": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowEndTime"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "f1racingadf_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"AzureDataLakeStorage1_accountKey": {
+						"value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+					},
+					"linkedService1_connectionString": {
+						"value": "[parameters('linkedService1_connectionString')]"
+					},
+					"ls_formula_final_accountKey": {
+						"value": "[parameters('ls_formula_final_accountKey')]"
+					},
+					"ls_postgre_f1racing_connectionString": {
+						"value": "[parameters('ls_postgre_f1racing_connectionString')]"
+					},
+					"ls_test_accountKey": {
+						"value": "[parameters('ls_test_accountKey')]"
+					},
+					"ls_wafa_stored_connectionString": {
+						"value": "[parameters('ls_wafa_stored_connectionString')]"
+					},
+					"AzureDataLakeStorage1_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"ls_adls2_sink_seasons_properties_typeProperties_url": {
+						"value": "[parameters('ls_adls2_sink_seasons_properties_typeProperties_url')]"
+					},
+					"ls_databricks_f1racing_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('ls_databricks_f1racing_properties_typeProperties_existingClusterId')]"
+					},
+					"ls_formula_final_properties_typeProperties_url": {
+						"value": "[parameters('ls_formula_final_properties_typeProperties_url')]"
+					},
+					"ls_restapi_properties_typeProperties_url": {
+						"value": "[parameters('ls_restapi_properties_typeProperties_url')]"
+					},
+					"ls_test_properties_typeProperties_url": {
+						"value": "[parameters('ls_test_properties_typeProperties_url')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "f1racingadf_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"kshitij_properties_pipeline_parameters_p_file_trigger": {
+						"value": "[parameters('kshitij_properties_pipeline_parameters_p_file_trigger')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'f1racingadf_ArmTemplate_0')]"
+			]
+		}
+	]
+}

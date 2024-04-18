@@ -1,0 +1,1845 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "f1racingadf"
+		},
+		"kshitij_properties_pipeline_parameters_p_file_trigger": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowEndTime"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_sink_adls2_race_without_filename')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls2_sink_seasons",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"directory_race": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().directory_race",
+							"type": "Expression"
+						},
+						"fileSystem": "formula-one"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"MRData": {
+							"type": "object",
+							"properties": {
+								"xmlns": {
+									"type": "string"
+								},
+								"series": {
+									"type": "string"
+								},
+								"url": {
+									"type": "string"
+								},
+								"limit": {
+									"type": "string"
+								},
+								"offset": {
+									"type": "string"
+								},
+								"total": {
+									"type": "string"
+								},
+								"SeasonTable": {
+									"type": "object",
+									"properties": {
+										"Seasons": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"season": {
+														"type": "string"
+													},
+													"url": {
+														"type": "string"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_source_drivers')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_restapi",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"relative_url_drivers": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {
+					"relativeUrl": {
+						"value": "@dataset().relative_url_drivers",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_source_rest_seasons')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_restapi",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"relative_url": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {
+					"relativeUrl": {
+						"value": "@dataset().relative_url",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/github_test')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls2_sink_seasons",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/test_ds')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_test",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "002 circuits.csv",
+						"fileSystem": "demo"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/test_sink')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_test",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "output"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "act_set_variable_startTime",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "startTime",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_set_variable_startTime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "insert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('startTime'),'yyyyMMddHHmm')}','pl_ingest_api','seasons_api','@{variables('startTime')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"logSettings": {
+								"enableCopyActivityLog": true,
+								"copyActivityLogSettings": {
+									"logLevel": "Warning",
+									"enableReliableLogging": false
+								},
+								"logLocationSettings": {
+									"linkedServiceName": {
+										"referenceName": "AzureDataLakeStorage1",
+										"type": "LinkedServiceReference"
+									}
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "test_ds",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "test_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Lookup2",
+						"type": "Lookup",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',\n    status ='Failed',\n    log = '@(activity('Copy data1').output.errors.Message)}}'\nWHERE job_id = '@{formatDateTime(variables('startTime'),'yyyyMMddHHmm')}' \n    AND task_name = 'seasons_api';\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Lookup3",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',log = '@{concat('Total Files written: ', activity('Copy data1').output.filesWritten)}',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS') \nWHERE job_id = '@{formatDateTime(variables('startTime'),'yyyyMMddHHmm')}' AND task_name = 'seasons_api';\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"endTime": {
+						"type": "String"
+					},
+					"startTime": {
+						"type": "String"
+					},
+					"season_id1": {
+						"type": "String"
+					},
+					"round_id1": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "test"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-16T10:42:58Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/test_ds')]",
+				"[concat(variables('factoryId'), '/datasets/test_sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_driver_api')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "This pipeline will ingest driver API.",
+				"activities": [
+					{
+						"name": "act_copy_driver_api",
+						"description": "This activity will copy data of driver from API to adlsgen2 storage.",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "RestSource",
+								"httpRequestTimeout": "00:01:40",
+								"requestInterval": "00.00:00:00.010",
+								"requestMethod": "GET",
+								"paginationRules": {
+									"QueryParameters.{off_val}": "RANGE:0:1000:1000"
+								}
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_source_drivers",
+								"type": "DatasetReference",
+								"parameters": {
+									"relative_url_drivers": {
+										"value": "@concat(pipeline().parameters.filename_drivers,pipeline().parameters.offset_drivers)",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_drivers_adls",
+								"type": "DatasetReference",
+								"parameters": {
+									"directory_drivers": {
+										"value": "@concat('bronze/drivers/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"offset_drivers": {
+						"type": "String",
+						"defaultValue": "?limit=1000&offset={off_val}"
+					},
+					"filename_drivers": {
+						"type": "string",
+						"defaultValue": "drivers.json"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String",
+						"defaultValue": "drivers.json"
+					},
+					"startTime": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-14T14:59:53Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_source_drivers')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_files')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Folder Details",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_formula_racing",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_window_end_date": {
+										"value": "@pipeline().parameters.p_file_end_date",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"exists"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					},
+					{
+						"name": "act_if_folder_exists",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Folder Details",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@activity('Get Folder Details').output.exists",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ingest_circuits_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/circuits_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_constructors_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/constructors_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_drivers_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/drivers_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_results_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/results_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_races_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/races_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_lap_time_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/lap_time file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_pit_stops_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/pit_stops file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "ingest_qualifying_file",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/data-ingestion/qualifying_file",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_end_date": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Formula1"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-17T11:22:33Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_race')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "act_foreach_race_result",
+						"description": "This activity will iterate for each race season.",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.race_list",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "season_id1",
+										"value": {
+											"value": "@item().season",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "act_set_variable_round_id",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "round_id1",
+										"value": {
+											"value": "@item().round",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "act_copy_results",
+									"description": "This activity will copy data based on season and round.",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "act_set_variable_round_id",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "RestSource",
+											"httpRequestTimeout": "00:01:40",
+											"requestInterval": "00.00:00:00.010",
+											"requestMethod": "GET"
+										},
+										"sink": {
+											"type": "JsonSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings",
+												"copyBehavior": "FlattenHierarchy"
+											},
+											"formatSettings": {
+												"type": "JsonWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_rest_source_results",
+											"type": "DatasetReference",
+											"parameters": {
+												"relative_url_results": {
+													"value": "@concat(variables('season_id1'),'/',variables('round_id1'),'/results.json?limit=10000')",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_adls2_sink_results",
+											"type": "DatasetReference",
+											"parameters": {
+												"directory_path_results": {
+													"value": "@concat('bronze/results/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+													"type": "Expression"
+												},
+												"filename_results": {
+													"value": "@concat(variables('season_id1'),'/',variables('round_id1'),'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"race_list": {
+						"type": "array"
+					}
+				},
+				"variables": {
+					"season_id1": {
+						"type": "String"
+					},
+					"round_id1": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "test"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-16T03:22:59Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_transform_file')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Folder Details",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_formula_racing",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_window_end_date": {
+										"value": "@pipeline().parameters.p_file_end_date",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"exists"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					},
+					{
+						"name": "act_if_folder_exists",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Folder Details",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@activity('Get Folder Details').output.exists",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "act_notebook_transform_race_result",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/transform/race_result",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "transform driver_standings result",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "act_notebook_transform_race_result",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/transform/driver_standing",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "transform_constructor_standings",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "act_notebook_transform_race_result",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/transform/constructor_standings",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "calculated race results",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "act_notebook_transform_race_result",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Formula1/transform/calculated_race_results",
+										"baseParameters": {
+											"file_date": {
+												"value": "@formatDateTime(pipeline().parameters.p_file_end_date,'yyyy-MM-dd')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_f1racing",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_end_date": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Formula1"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-17T11:22:33Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_api')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "act_web_seasons_api",
+						"description": "This activity will get seasons information from API.",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "act_lookup_log_metadata_entry_seasons_api",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "http://ergast.com/api/f1/seasons.json"
+						}
+					},
+					{
+						"name": "act_set_variable_startTime",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "start_time",
+							"value": {
+								"value": "@formatDateTime(utcnow(),'yyyy-MM-dd HH:mm:ss' )",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "act_lookup_log_metadata_entry_seasons_api",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_set_variable_startTime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "insert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_seasons_api','seasons_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "act_copy_seasons_api_into_adlsgen2",
+						"description": "This activity will store seasons API information into ADLS Gen2 storage.",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "act_web_seasons_api",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "RestSource",
+								"httpRequestTimeout": "00:01:40",
+								"requestInterval": "00.00:00:00.010",
+								"requestMethod": "GET"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_source_rest_seasons",
+								"type": "DatasetReference",
+								"parameters": {
+									"relative_url": {
+										"value": "@concat(pipeline().parameters.seasons_api,'?limit=100')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_adls2_sink_seasons",
+								"type": "DatasetReference",
+								"parameters": {
+									"directory_path": {
+										"value": "@concat('bronze/seasons/',formatDateTime(utcnow(),'yyyyMMdd'))",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@pipeline().parameters.seasons_api",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "act_lookup_metadata_entry_race_api",
+						"description": "This activity will log end time of copy activity of seasons_api and will insert start time of copying race file data.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_copy_seasons_api_into_adlsgen2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',log = '@{concat('Total Files written: ', activity('act_copy_seasons_api_into_adlsgen2').output.filesWritten)}',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'seasons_api';\n\ninsert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_race_api','race_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "act_lookup_read_filecontent_of_seasons",
+						"description": "This activity will read content of seasons file.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_copy_seasons_api_into_adlsgen2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_adls2_sink_seasons",
+								"type": "DatasetReference",
+								"parameters": {
+									"directory_path": {
+										"value": "@concat('bronze/seasons/',formatDateTime(utcNow(),'yyyyMMdd'))",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@pipeline().parameters.seasons_api",
+										"type": "Expression"
+									}
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "act_foreach_iterate_seasons_file",
+						"description": "This activity will iterate over seasons file.",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "act_lookup_read_filecontent_of_seasons",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('act_lookup_read_filecontent_of_seasons').output.value[0].MRData.SeasonTable.Seasons",
+								"type": "Expression"
+							},
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "act_copy_race_file_data",
+									"description": "This activity will copy race data from API and will take seasons information from lookup activity.",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "RestSource",
+											"httpRequestTimeout": "00:01:40",
+											"requestInterval": "00.00:00:00.010",
+											"requestMethod": "GET"
+										},
+										"sink": {
+											"type": "JsonSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "JsonWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_source_rest_seasons",
+											"type": "DatasetReference",
+											"parameters": {
+												"relative_url": {
+													"value": "@concat(item()['season'],'.json?limit=1500')",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_sink_adls2_race",
+											"type": "DatasetReference",
+											"parameters": {
+												"directory_race": {
+													"value": "@concat('bronze/race/',formatDateTime(utcNow(),'yyyyMMdd'))",
+													"type": "Expression"
+												},
+												"filename_race": {
+													"value": "@concat(item()['season'],'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "act_set_total_files_wriiten_copy_api",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "act_copy_race_file_data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "total_files_written_copy_race_files",
+										"value": {
+											"value": "@add(variables('total_files_written'), activity('act_copy_race_file_data').output.filesWritten)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "act_lookup_log_metadata_entry_Race and Results",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_foreach_iterate_seasons_file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',log = '@{concat('Total Files written: ', variables('total_files_written_copy_race_files'))}',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'race_api';\n\ninsert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_results_api','results_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "act_lookup_read_filecontent_race",
+						"description": "This activity will read content of race files.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_foreach_iterate_seasons_file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": {
+										"value": "@concat('bronze/race/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*.json",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_sink_adls2_race_without_filename",
+								"type": "DatasetReference",
+								"parameters": {
+									"directory_race": {
+										"value": "@concat('bronze/race/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+										"type": "Expression"
+									}
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "act_foreach_race_file",
+						"description": "This activity will iterate race file for each season",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "act_lookup_read_filecontent_race",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('act_lookup_read_filecontent_race').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "act_execute_pipeline_1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_ingest_race",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"race_list": {
+												"value": "@item().MRData.RaceTable.Races",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "act_lookup_log_entry_final",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "act_foreach_race_file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'results_api';\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzurePostgreSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"seasons_api": {
+						"type": "string",
+						"defaultValue": "seasons.json"
+					}
+				},
+				"variables": {
+					"start_time": {
+						"type": "String"
+					},
+					"total_files_written": {
+						"type": "Integer"
+					},
+					"total_files_written_copy_race_files": {
+						"type": "Integer"
+					},
+					"season_id1": {
+						"type": "String"
+					},
+					"round_id1": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "test"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-16T03:22:59Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_source_rest_seasons')]",
+				"[concat(variables('factoryId'), '/datasets/ds_sink_adls2_race_without_filename')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_race')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_process_all_data')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Execute Ingest data",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_ingest_files",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_file_end_date": {
+									"value": "@pipeline().parameters.p_file_trigger",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Execute Transform Data",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Execute Ingest data",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_transform_file",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"p_file_end_date": {
+									"value": "@pipeline().parameters.p_file_trigger",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_trigger": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Formula1"
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-04-17T11:06:22Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_files')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_transform_file')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/kshitij')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "pl_process_all_data",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"p_file_trigger": "[parameters('kshitij_properties_pipeline_parameters_p_file_trigger')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Hour",
+					"interval": 168,
+					"startTime": "2021-03-14T15:26:00Z",
+					"endTime": "2021-04-25T16:26:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_process_all_data')]"
+			]
+		}
+	]
+}
