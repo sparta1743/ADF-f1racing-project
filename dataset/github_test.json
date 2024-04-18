@@ -1,0 +1,16 @@
+{
+	"name": "github_test",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls2_sink_seasons",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation"
+			}
+		}
+	}
+}
