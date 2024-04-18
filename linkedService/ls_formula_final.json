@@ -1,0 +1,12 @@
+{
+	"name": "ls_formula_final",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://f1racingdatalake.dfs.core.windows.net/",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDVGMDY0OThCLUQ0OUQtNDk4MC04MjQ4LUMwNTE2ODgzNDA3QV81MTE1ZWZmYi01MThhLTRlZjQtYTdlMi01MzYzYjVkY2I1ZmMiDQp9"
+		}
+	}
+}

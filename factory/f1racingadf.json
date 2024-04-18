@@ -1,0 +1,9 @@
+{
+	"name": "f1racingadf",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "ac16a445-4673-4052-b557-201c5f8936a0",
+		"tenantId": "124c8f68-d504-44ed-8217-e35306a1b77c"
+	}
+}

@@ -1,0 +1,537 @@
+{
+	"name": "pl_ingest_api",
+	"properties": {
+		"activities": [
+			{
+				"name": "act_web_seasons_api",
+				"description": "This activity will get seasons information from API.",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "act_lookup_log_metadata_entry_seasons_api",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "http://ergast.com/api/f1/seasons.json"
+				}
+			},
+			{
+				"name": "act_set_variable_startTime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "start_time",
+					"value": {
+						"value": "@formatDateTime(utcnow(),'yyyy-MM-dd HH:mm:ss' )",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "act_lookup_log_metadata_entry_seasons_api",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_set_variable_startTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "insert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_seasons_api','seasons_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "act_copy_seasons_api_into_adlsgen2",
+				"description": "This activity will store seasons API information into ADLS Gen2 storage.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "act_web_seasons_api",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET"
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_source_rest_seasons",
+						"type": "DatasetReference",
+						"parameters": {
+							"relative_url": {
+								"value": "@concat(pipeline().parameters.seasons_api,'?limit=100')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls2_sink_seasons",
+						"type": "DatasetReference",
+						"parameters": {
+							"directory_path": {
+								"value": "@concat('bronze/seasons/',formatDateTime(utcnow(),'yyyyMMdd'))",
+								"type": "Expression"
+							},
+							"file_name": {
+								"value": "@pipeline().parameters.seasons_api",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "act_lookup_metadata_entry_race_api",
+				"description": "This activity will log end time of copy activity of seasons_api and will insert start time of copying race file data.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_copy_seasons_api_into_adlsgen2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',log = '@{concat('Total Files written: ', activity('act_copy_seasons_api_into_adlsgen2').output.filesWritten)}',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'seasons_api';\n\ninsert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_race_api','race_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "act_lookup_read_filecontent_of_seasons",
+				"description": "This activity will read content of seasons file.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_copy_seasons_api_into_adlsgen2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_adls2_sink_seasons",
+						"type": "DatasetReference",
+						"parameters": {
+							"directory_path": {
+								"value": "@concat('bronze/seasons/',formatDateTime(utcNow(),'yyyyMMdd'))",
+								"type": "Expression"
+							},
+							"file_name": {
+								"value": "@pipeline().parameters.seasons_api",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "act_foreach_iterate_seasons_file",
+				"description": "This activity will iterate over seasons file.",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "act_lookup_read_filecontent_of_seasons",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('act_lookup_read_filecontent_of_seasons').output.value[0].MRData.SeasonTable.Seasons",
+						"type": "Expression"
+					},
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "act_copy_race_file_data",
+							"description": "This activity will copy race data from API and will take seasons information from lookup activity.",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET"
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_rest_seasons",
+									"type": "DatasetReference",
+									"parameters": {
+										"relative_url": {
+											"value": "@concat(item()['season'],'.json?limit=1500')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_sink_adls2_race",
+									"type": "DatasetReference",
+									"parameters": {
+										"directory_race": {
+											"value": "@concat('bronze/race/',formatDateTime(utcNow(),'yyyyMMdd'))",
+											"type": "Expression"
+										},
+										"filename_race": {
+											"value": "@concat(item()['season'],'.json')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "act_set_total_files_wriiten_copy_api",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "act_copy_race_file_data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "total_files_written_copy_race_files",
+								"value": {
+									"value": "@add(variables('total_files_written'), activity('act_copy_race_file_data').output.filesWritten)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "act_lookup_log_metadata_entry_Race and Results",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_foreach_iterate_seasons_file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',log = '@{concat('Total Files written: ', variables('total_files_written_copy_race_files'))}',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'race_api';\n\ninsert into formulaone_audit.job_metadata_tbl (job_id,job_name,task_name,start_time,status) VALUES ('@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}','ingest_results_api','results_api','@{variables('start_time')}',\n'In-Progress');\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "act_lookup_read_filecontent_race",
+				"description": "This activity will read content of race files.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_foreach_iterate_seasons_file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": {
+								"value": "@concat('bronze/race/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*.json",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_sink_adls2_race_without_filename",
+						"type": "DatasetReference",
+						"parameters": {
+							"directory_race": {
+								"value": "@concat('bronze/race/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "act_foreach_race_file",
+				"description": "This activity will iterate race file for each season",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "act_lookup_read_filecontent_race",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('act_lookup_read_filecontent_race').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "act_execute_pipeline_1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_ingest_race",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"race_list": {
+										"value": "@item().MRData.RaceTable.Races",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "act_lookup_log_entry_final",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "act_foreach_race_file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "UPDATE formulaone_audit.job_metadata_tbl\nSET end_time = '@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}',status ='success',execution_time = TO_CHAR(('@{formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')}'::timestamp - start_time), 'HH24:MI:SS')\nWHERE job_id = '@{formatDateTime(variables('start_time'),'yyyyMMddHHmm')}' AND task_name = 'results_api';\n\nselect job_id from formulaone_audit.job_metadata_tbl;\n",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzurePostgreSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"parameters": {
+			"seasons_api": {
+				"type": "string",
+				"defaultValue": "seasons.json"
+			}
+		},
+		"variables": {
+			"start_time": {
+				"type": "String"
+			},
+			"total_files_written": {
+				"type": "Integer"
+			},
+			"total_files_written_copy_race_files": {
+				"type": "Integer"
+			},
+			"season_id1": {
+				"type": "String"
+			},
+			"round_id1": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "test"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-04-16T03:22:59Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

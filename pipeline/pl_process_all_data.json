@@ -1,0 +1,70 @@
+{
+	"name": "pl_process_all_data",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute Ingest data",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_ingest_files",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_file_end_date": {
+							"value": "@pipeline().parameters.p_file_trigger",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Execute Transform Data",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute Ingest data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_transform_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_file_end_date": {
+							"value": "@pipeline().parameters.p_file_trigger",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"p_file_trigger": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Formula1"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-04-17T11:06:22Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

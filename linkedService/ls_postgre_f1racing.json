@@ -1,0 +1,12 @@
+{
+	"name": "ls_postgre_f1racing",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzurePostgreSql",
+		"typeProperties": {
+			"connectionString": "host=f1racing.postgres.database.azure.com;port=5432;database=postgres;uid=f1_sparta;encryptionmethod=1;validateservercertificate=1",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDVGMDY0OThCLUQ0OUQtNDk4MC04MjQ4LUMwNTE2ODgzNDA3QV9jODc4YmU0Ny1iMWVjLTQ4YWUtYTg3ZS1mMDAxODg1Yjc4YzQiDQp9"
+		}
+	}
+}

@@ -1,0 +1,89 @@
+{
+	"name": "pl_ingest_driver_api",
+	"properties": {
+		"description": "This pipeline will ingest driver API.",
+		"activities": [
+			{
+				"name": "act_copy_driver_api",
+				"description": "This activity will copy data of driver from API to adlsgen2 storage.",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"QueryParameters.{off_val}": "RANGE:0:1000:1000"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_source_drivers",
+						"type": "DatasetReference",
+						"parameters": {
+							"relative_url_drivers": {
+								"value": "@concat(pipeline().parameters.filename_drivers,pipeline().parameters.offset_drivers)",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_drivers_adls",
+						"type": "DatasetReference",
+						"parameters": {
+							"directory_drivers": {
+								"value": "@concat('bronze/drivers/', formatDateTime(utcnow(), 'yyyyMMdd'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"offset_drivers": {
+				"type": "String",
+				"defaultValue": "?limit=1000&offset={off_val}"
+			},
+			"filename_drivers": {
+				"type": "string",
+				"defaultValue": "drivers.json"
+			}
+		},
+		"variables": {
+			"filename": {
+				"type": "String",
+				"defaultValue": "drivers.json"
+			},
+			"startTime": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-04-14T14:59:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
