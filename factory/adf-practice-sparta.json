@@ -1,0 +1,9 @@
+{
+	"name": "adf-practice-sparta",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e29cba2e-7ddb-4a1d-bb1e-3179f6c52064",
+		"tenantId": "d1a9ccbb-68ff-4b19-8178-be38acd7ebe4"
+	}
+}
