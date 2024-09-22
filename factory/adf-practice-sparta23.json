@@ -1,0 +1,9 @@
+{
+	"name": "adf-practice-sparta23",
+	"location": "japaneast",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e09af6a7-14d7-49da-9140-357b038060ba",
+		"tenantId": "1d65fa8b-404f-4056-84e4-367443cb2cde"
+	}
+}
